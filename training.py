@@ -479,7 +479,7 @@ def load_model_weights(model: MultimodalACSAModel, ckpt_path: str, device: str =
         raise FileNotFoundError(f"Model safetensors not found: {best_safetensor_path}")
 
     loaded_state = {}
-    with safe_open(safetensor_path, framework="pt", device=device) as f:
+    with safe_open(best_safetensor_path, framework="pt", device=device) as f:
         for key in f.keys():
             loaded_state[key] = f.get_tensor(key)
 
