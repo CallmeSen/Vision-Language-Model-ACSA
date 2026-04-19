@@ -63,6 +63,7 @@ def parse_args():
     parser.add_argument("--use_lora", action="store_true", default=True)
     parser.add_argument("--no_lora", dest="use_lora", action="store_false")
     parser.add_argument("--resume", type=str, default=None, help="Path to checkpoint to resume from")
+    parser.add_argument("--test_only", action="store_true", help="Skip training and only run test evaluation")
     return parser.parse_args()
 
 
@@ -150,6 +151,8 @@ def train_epoch(
                 pixel_values=pixel_values,
                 roi_data=roi_data,
                 aspect_labels=aspect_labels,
+                image_mask=batch.get("image_mask"),
+                raw_images=batch.get("raw_images"),
             )
             loss = outputs["loss"] / gradient_accumulation
 
@@ -198,6 +201,7 @@ def eval_epoch(
         for batch in pbar:
             comments = batch["comments"]
             pixel_values = batch["pixel_values"].to(device)
+            B = pixel_values.shape[0]
             aspect_labels = batch["aspect_labels"]
 
             encodings = tokenizer(
@@ -218,19 +222,22 @@ def eval_epoch(
                     pixel_values=pixel_values,
                     roi_data=roi_data,
                     aspect_labels=aspect_labels,
+                    image_mask=batch.get("image_mask"),
+                    raw_images=batch.get("raw_images"),
                 )
 
-            total_loss += outputs["loss"].item()
+            total_loss += outputs["ce_loss"].item()
 
             logits = outputs["logits"]  # [B*6, 4]
             targets = outputs["targets"]  # [B*6]
 
-            B = input_ids.size(0)
+            # logits [B*6, 4], targets [B*6]; reshape to [B, 6] for correct per-aspect slicing
+            logits_view = logits.view(B, NUM_ASPECTS, -1)  # [B, 6, 4]
+            targets_view = targets.view(B, NUM_ASPECTS)   # [B, 6]
+
             for asp_idx in range(NUM_ASPECTS):
-                start = asp_idx * B
-                end = start + B
-                preds = logits[start:end].argmax(dim=-1).cpu().tolist()
-                labels = targets[start:end].cpu().tolist()
+                preds = logits_view[:, asp_idx, :].argmax(dim=-1).cpu().tolist()
+                labels = targets_view[:, asp_idx].cpu().tolist()
                 aspect_preds[asp_idx].extend(preds)
                 aspect_labels_acc[asp_idx].extend(labels)
 
@@ -311,6 +318,7 @@ def test_epoch(
         for batch_idx, batch in enumerate(pbar):
             comments = batch["comments"]
             pixel_values = batch["pixel_values"].to(device)
+            B = pixel_values.shape[0]
             aspect_labels = batch["aspect_labels"]
             image_names_batch = batch.get("image_names", [[] for _ in comments])
 
@@ -332,25 +340,28 @@ def test_epoch(
                     pixel_values=pixel_values,
                     roi_data=roi_data,
                     aspect_labels=aspect_labels,
+                    image_mask=batch.get("image_mask"),
+                    raw_images=batch.get("raw_images"),
                 )
 
-            total_loss += outputs["loss"].item()
+            total_loss += outputs["ce_loss"].item()
 
             logits = outputs["logits"]  # [B*6, 4]
             targets = outputs["targets"]  # [B*6]
 
-            B = input_ids.size(0)
+            # logits [B*6, 4], targets [B*6]; reshape to [B, 6] for correct per-aspect slicing
+            logits_view = logits.view(B, NUM_ASPECTS, -1)  # [B, 6, 4]
+            targets_view = targets.view(B, NUM_ASPECTS)   # [B, 6]
+
             for asp_idx in range(NUM_ASPECTS):
-                start = asp_idx * B
-                end = start + B
-                preds = logits[start:end].argmax(dim=-1).cpu().tolist()
-                labels = targets[start:end].cpu().tolist()
+                preds = logits_view[:, asp_idx, :].argmax(dim=-1).cpu().tolist()
+                labels = targets_view[:, asp_idx].cpu().tolist()
                 aspect_preds[asp_idx].extend(preds)
                 aspect_labels_acc[asp_idx].extend(labels)
 
             # Per-sample predictions
             logits_per_sample = logits.view(B, NUM_ASPECTS, -1)  # [B, 6, 4]
-            probs_per_sample = torch.softmax(logits_per_sample, dim=-1).cpu().tolist()
+            probs_per_sample = torch.softmax(logits_per_sample.float(), dim=-1).cpu().numpy()
 
             for b in range(B):
                 sample_preds = {}
@@ -358,7 +369,7 @@ def test_epoch(
                 for asp_idx, aspect_name in enumerate(ASPECT_LABELS):
                     pred_id = int(logits_per_sample[b, asp_idx].argmax().item())
                     prob = probs_per_sample[b, asp_idx]
-                    true_label = int(targets[asp_idx * B + b].item())
+                    true_label = int(targets_view[b, asp_idx].item())
                     sample_preds[aspect_name] = {
                         "prediction": SENTIMENT_LABELS[pred_id],
                         "prediction_id": pred_id,
@@ -456,9 +467,11 @@ def save_checkpoint(
     full_state.update(_flatten_with_prefix(model.aspect_queries.state_dict(), "aspect_queries"))
     full_state.update(_flatten_with_prefix(model.text_retriever.state_dict(), "text_retriever"))
     full_state.update(_flatten_with_prefix(model.img_retriever.state_dict(), "img_retriever"))
+    full_state.update(_flatten_with_prefix(model.patch_retriever.state_dict(), "patch_retriever"))
     full_state.update(_flatten_with_prefix(model.roi_retriever.state_dict(), "roi_retriever"))
     full_state.update(_flatten_with_prefix(model.gated_fusion.state_dict(), "gated_fusion"))
     full_state.update(_flatten_with_prefix(model.img_sum_projector.state_dict(), "img_sum_projector"))
+    full_state.update(_flatten_with_prefix(model.presence_head.state_dict(), "presence_head"))
     for k, v in get_peft_model_state_dict(model.llm).items():
         full_state[f"lora.{k}"] = v
     safe_path = path.replace(".pt", "_model.safetensors")
@@ -508,6 +521,9 @@ def load_model_weights(model: MultimodalACSAModel, ckpt_path: str, device: str =
     img_r = _extract_sub(loaded_state, "img_retriever")
     if img_r:
         model.img_retriever.load_state_dict(img_r, strict=False)
+    patch_r = _extract_sub(loaded_state, "patch_retriever")
+    if patch_r:
+        model.patch_retriever.load_state_dict(patch_r, strict=False)
     roi_r = _extract_sub(loaded_state, "roi_retriever")
     if roi_r:
         model.roi_retriever.load_state_dict(roi_r, strict=False)
@@ -517,6 +533,9 @@ def load_model_weights(model: MultimodalACSAModel, ckpt_path: str, device: str =
     img_sum = _extract_sub(loaded_state, "img_sum_projector")
     if img_sum:
         model.img_sum_projector.load_state_dict(img_sum, strict=False)
+    presence = _extract_sub(loaded_state, "presence_head")
+    if presence:
+        model.presence_head.load_state_dict(presence, strict=False)
 
 
 def train(args, tokenizer, device: torch.device, output_dir: Path):
@@ -594,6 +613,9 @@ def train(args, tokenizer, device: torch.device, output_dir: Path):
             print(f"  Resumed: epoch={start_epoch}, best_f1={best_f1:.4f}")
 
     patience_counter = 0
+    best_eval_results = None
+    all_epoch_results = []  # for train_result.json
+
     for epoch in range(start_epoch, args.max_epochs):
         print(f"\nEpoch {epoch + 1}/{args.max_epochs}")
 
@@ -630,6 +652,7 @@ def train(args, tokenizer, device: torch.device, output_dir: Path):
         current_f1 = eval_results["overall_f1_macro"]
         if current_f1 > best_f1:
             best_f1 = current_f1
+            best_eval_results = eval_results
             patience_counter = 0
             print(f"*** New best F1: {best_f1:.4f} (P={eval_results['overall_precision']:.4f}, R={eval_results['overall_recall']:.4f}) ***")
 
@@ -658,7 +681,51 @@ def train(args, tokenizer, device: torch.device, output_dir: Path):
             path=str(output_dir / "last_checkpoint.pt"),
         )
 
+        # Record per-epoch results for train_result.json (no per_sample_predictions)
+        epoch_record = {
+            "epoch": epoch + 1,
+            "train_loss": train_loss,
+            "dev_loss": eval_results["loss"],
+            "dev_f1_macro": eval_results["overall_f1_macro"],
+            "dev_f1_weighted": eval_results["overall_f1_weighted"],
+            "dev_precision": eval_results["overall_precision"],
+            "dev_recall": eval_results["overall_recall"],
+            "dev_accuracy": eval_results["overall_accuracy"],
+            "per_aspect": eval_results["per_aspect"],
+        }
+        all_epoch_results.append(epoch_record)
+
     print(f"\nBest overall F1: {best_f1:.4f}")
+
+    # ── Save train_result.json (per-epoch dev metrics, no per_sample_predictions) ──
+    train_result = {
+        "best_f1": best_f1,
+        "epochs": all_epoch_results,
+    }
+    train_result_path = output_dir / "train_result.json"
+    with open(train_result_path, "w", encoding="utf-8") as f:
+        json.dump(train_result, f, indent=2, ensure_ascii=False)
+    print(f"Per-epoch results saved to {train_result_path}")
+
+    # ── Save dev_result.json (best model on dev set, no per_sample_predictions) ───
+    dev_result = {
+        "best_f1": best_f1,
+        "best_epoch": next(
+            (r["epoch"] for r in reversed(all_epoch_results) if r["dev_f1_macro"] == best_f1),
+            None,
+        ),
+        "dev_loss": best_eval_results["loss"],
+        "dev_f1_macro": best_eval_results["overall_f1_macro"],
+        "dev_f1_weighted": best_eval_results["overall_f1_weighted"],
+        "dev_precision": best_eval_results["overall_precision"],
+        "dev_recall": best_eval_results["overall_recall"],
+        "dev_accuracy": best_eval_results["overall_accuracy"],
+        "per_aspect": best_eval_results["per_aspect"],
+    }
+    dev_result_path = output_dir / "dev_result.json"
+    with open(dev_result_path, "w", encoding="utf-8") as f:
+        json.dump(dev_result, f, indent=2, ensure_ascii=False)
+    print(f"Best dev results saved to {dev_result_path}")
 
     # ── Test evaluation with best model ───────────────────────────────────
     print("\n" + "=" * 60)
@@ -691,10 +758,11 @@ def train(args, tokenizer, device: torch.device, output_dir: Path):
               f"R={metrics['recall']:.4f}  "
               f"Acc={metrics['accuracy']:.4f}")
 
-    # Save test_result.json
+    # Save test_result.json (without per_sample_predictions)
+    test_result_to_save = {k: v for k, v in test_results.items() if k != "per_sample_predictions"}
     test_result_path = output_dir / "test_result.json"
     with open(test_result_path, "w", encoding="utf-8") as f:
-        json.dump(test_results, f, indent=2, ensure_ascii=False)
+        json.dump(test_result_to_save, f, indent=2, ensure_ascii=False)
     print(f"\nTest results saved to {test_result_path}")
 
     del model, optimizer, scheduler, scaler
@@ -717,6 +785,63 @@ def main():
     ensure_base_models_cached()
 
     tokenizer = load_tokenizer()
+
+    if args.test_only:
+        print("\n" + "=" * 60)
+        print("TEST ONLY MODE — skipping training")
+        print("=" * 60)
+
+        model = MultimodalACSAModel(use_lora=args.use_lora)
+        model.to(device)
+
+        best_ckpt = str(output_dir / "best_checkpoint.pt")
+        if not Path(best_ckpt).exists():
+            print(f"ERROR: Best checkpoint not found at {best_ckpt}")
+            return
+        load_model_weights(model, best_ckpt, device=str(device))
+        print(f"Loaded best checkpoint from {best_ckpt}")
+
+        test_dataset = MultimodalSentimentDataset(
+            split="test",
+            data_dir=args.data_dir,
+        )
+        test_loader = DataLoader(
+            test_dataset,
+            batch_size=args.batch_size,
+            shuffle=False,
+            num_workers=args.num_workers,
+            collate_fn=collate_fn,
+        )
+
+        test_results = test_epoch(
+            model=model,
+            dataloader=test_loader,
+            tokenizer=tokenizer,
+            device=device,
+        )
+
+        print(f"\nTest Loss: {test_results['loss']:.4f}")
+        print(f"Test F1 (macro): {test_results['overall_f1_macro']:.4f}  "
+              f"Precision: {test_results['overall_precision']:.4f}  "
+              f"Recall: {test_results['overall_recall']:.4f}  "
+              f"Accuracy: {test_results['overall_accuracy']:.4f}")
+        print("Per-aspect metrics (F1 / Precision / Recall / Acc):")
+        for aspect_name, metrics in test_results["per_aspect"].items():
+            print(f"  {aspect_name}: F1={metrics['f1_macro']:.4f}  "
+                  f"P={metrics['precision']:.4f}  "
+                  f"R={metrics['recall']:.4f}  "
+                  f"Acc={metrics['accuracy']:.4f}")
+
+        test_result_to_save = {k: v for k, v in test_results.items() if k != "per_sample_predictions"}
+        test_result_path = output_dir / "test_result.json"
+        with open(test_result_path, "w", encoding="utf-8") as f:
+            json.dump(test_result_to_save, f, indent=2, ensure_ascii=False)
+        print(f"\nTest results saved to {test_result_path}")
+
+        del model
+        gc.collect()
+        torch.cuda.empty_cache()
+        return
 
     best_f1 = train(
         args=args,

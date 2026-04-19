@@ -84,13 +84,15 @@ class MultimodalSentimentDataset(Dataset):
         except (FileNotFoundError, IOError):
             return None
 
-    def _images_to_tensor(self, images: List[Image.Image]) -> torch.Tensor:
-        """Convert list of PIL images to [M, 3, H, W] tensor using SigLIP processor."""
+    def _images_to_tensor(self, images: List[Optional[Image.Image]]) -> torch.Tensor:
+        """Convert list of PIL images (None for padded slots) to [M, 3, H, W] tensor using SigLIP processor.
+        Padded slots remain zero tensors."""
         processor = _get_siglip_processor()
-        M = len(images)
         tensor = torch.zeros((MAX_IMAGES, 3, IMAGE_SIZE, IMAGE_SIZE), dtype=torch.float32)
 
         for i, img in enumerate(images[:MAX_IMAGES]):
+            if img is None:
+                continue  # leave tensor[i] as zeros (padded slot)
             img = img.convert("RGB")
             inputs = processor(images=img, return_tensors="pt")
             tensor[i] = inputs["pixel_values"][0]
@@ -130,26 +132,38 @@ class MultimodalSentimentDataset(Dataset):
         comment = sample.get("comment", "")
 
         image_names = self._get_image_names(sample)
+        # Collect real images; pad with None so padded slots stay as zero tensors
         images = []
         for name in image_names[:MAX_IMAGES]:
             img = self._load_image(name)
-            if img is not None:
-                images.append(img)
+            images.append(img)  # may be None if load failed
 
-        black_img = Image.new("RGB", (IMAGE_SIZE, IMAGE_SIZE), (0, 0, 0))
-        while len(images) < MAX_IMAGES:
-            images.append(black_img)
+        num_real = len([img for img in images if img is not None])
+
+        # Build explicit image mask: 1 for real images, 0 for padded slots.
+        # Set mask per-slot to avoid misalignment if a non-terminal image fails to load.
+        image_mask = torch.zeros(MAX_IMAGES, dtype=torch.float32)
+        for i, img in enumerate(images[:MAX_IMAGES]):
+            if img is not None:
+                image_mask[i] = 1.0
 
         images_tensor = self._images_to_tensor(images)
 
         aspect_labels = self._get_aspect_label(sample)
 
-        # Build roi_data per image
+        # Build roi_data per image (only for real images)
         roi_data_per_img = [self._get_roi_for_image(name) for name in image_names]
+
+        # Store raw images (None for padded) for ROI cropping in encode_roi
+        raw_images = images[:MAX_IMAGES]
+        while len(raw_images) < MAX_IMAGES:
+            raw_images.append(None)
 
         return {
             "comment": comment,
             "pixel_values": images_tensor,
+            "image_mask": image_mask,
+            "raw_images": raw_images,
             "image_names": image_names,
             "aspect_labels": aspect_labels,
             "roi_data": roi_data_per_img,
@@ -158,17 +172,21 @@ class MultimodalSentimentDataset(Dataset):
 
 def collate_fn(batch: List[Dict[str, Any]]) -> Dict[str, Any]:
     pixel_values = torch.stack([b["pixel_values"] for b in batch])
+    image_masks = torch.stack([b["image_mask"] for b in batch])
     comments = [b["comment"] for b in batch]
     image_names = [b["image_names"] for b in batch]
     aspect_labels = [b["aspect_labels"] for b in batch]
     roi_data = [b["roi_data"] for b in batch]
+    raw_images = [b["raw_images"] for b in batch]
 
     return {
         "comments": comments,
         "pixel_values": pixel_values,
+        "image_mask": image_masks,
         "image_names": image_names,
         "aspect_labels": aspect_labels,
         "roi_data": roi_data,
+        "raw_images": raw_images,
     }
 
 

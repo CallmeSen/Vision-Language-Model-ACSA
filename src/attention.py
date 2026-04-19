@@ -82,18 +82,20 @@ class _CrossAttention(nn.Module):
             attn_weights: average attention weights over heads. Shape: [B, L]
         """
         B = k.size(0)
-
-        # Expand q if needed: [B, D_h] -> [B, H, head_dim]
-        if q.dim() == 2:
-            q = q.unsqueeze(1)  # [B, 1, D_h]
-        # Work with [B, H, 1, head_dim]
         H = self.num_heads
         D = self.head_dim
-        q = q.view(B, H, 1, D).transpose(1, 2)  # [B, 1, H, D] -> [B, H, 1, D]  (for broadcast)
-        # Actually: [B, H, 1, D] is what we want to broadcast over L
-        # q: [B, H, 1, D]
-        q = q.transpose(1, 2)  # [B, 1, H, D]
 
+        # Expand q if needed: [B, D_h] -> [B, 1, D_h]
+        if q.dim() == 2:
+            q = q.unsqueeze(1)  # [B, 1, D_h]
+
+        # Apply learned Q/K/V projections before multi-head splitting
+        q = self.q_proj(q)   # [B, 1, D_h]
+        k = self.k_proj(k)   # [B, L, D_h]
+        v = self.v_proj(v)   # [B, L, D_h]
+
+        # Reshape into multi-head format: [B, seq, H, D] -> [B, H, seq, D]
+        q = q.view(B, -1, H, D).transpose(1, 2)  # [B, H, 1, D]
         k = k.view(B, -1, H, D).transpose(1, 2)  # [B, H, L, D]
         v = v.view(B, -1, H, D).transpose(1, 2)  # [B, H, L, D]
 
@@ -103,6 +105,7 @@ class _CrossAttention(nn.Module):
 
         # Expand mask: [B, L] -> [B, 1, 1, L]
         if mask is not None:
+            mask = mask.to(q.device)
             mask = mask.unsqueeze(1).unsqueeze(1)  # [B, 1, 1, L]
             attn = attn.masked_fill(mask == 0, float("-inf"))
 
@@ -192,6 +195,7 @@ class ImageRetriever(nn.Module):
         # attn_weights shape: [B, M]
         # Zero out padded positions
         if img_mask is not None:
+            img_mask = img_mask.to(attn_weights.device)
             attn_weights = attn_weights.masked_fill(img_mask == 0, 0.0)
 
         # Normalize to sum to 1 over valid images
@@ -234,12 +238,55 @@ class RoiRetriever(nn.Module):
         h, attn_weights = self.attn(q, R_roi, R_roi, roi_mask)
 
         if roi_mask is not None:
+            roi_mask = roi_mask.to(attn_weights.device)
             attn_weights = attn_weights.masked_fill(roi_mask == 0, 0.0)
 
         denom = attn_weights.sum(dim=1, keepdim=True).clamp_min(1e-6)
         w_roi = attn_weights / denom  # [B, R_total]
 
         return h, w_roi
+
+
+class PatchRetriever(nn.Module):
+    """
+    Aspect-guided retrieval from patch-level image features.
+    Uses cross-attention from aspect query to flattened patch tokens.
+    """
+
+    def __init__(
+        self,
+        d_h: int = LLM_HIDDEN,
+        num_heads: int = IMG_RETRIEVER_HEADS,
+    ):
+        super().__init__()
+        self.attn = _CrossAttention(d_h, num_heads)
+
+    def forward(
+        self,
+        q: torch.Tensor,
+        H_patch: torch.Tensor,
+        patch_mask: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Args:
+            q: aspect query. Shape: [B, D_h]
+            H_patch: patch tokens. Shape: [B, M*P, D_h]
+            patch_mask: 1=valid, 0=pad. Shape: [B, M*P]
+
+        Returns:
+            h_patch_a: weighted patch evidence. Shape: [B, D_h]
+            w_patch: per-patch relevance weights. Shape: [B, M*P]
+        """
+        h, attn_weights = self.attn(q, H_patch, H_patch, patch_mask)
+
+        if patch_mask is not None:
+            patch_mask = patch_mask.to(attn_weights.device)
+            attn_weights = attn_weights.masked_fill(patch_mask == 0, 0.0)
+
+        denom = attn_weights.sum(dim=1, keepdim=True).clamp_min(1e-6)
+        w_patch = attn_weights / denom  # [B, M*P]
+
+        return h, w_patch
 
 
 class GatedFusion(nn.Module):
@@ -286,5 +333,5 @@ class GatedFusion(nn.Module):
         # Weighted sum
         h_fuse = g_txt * h_txt + g_img * h_img + g_roi * h_roi
 
-        # Residual connection with norm
-        return self.fuse_norm(h_txt + h_fuse)
+        # No text-only residual — gates learn to weight modalities fairly
+        return self.fuse_norm(h_fuse)

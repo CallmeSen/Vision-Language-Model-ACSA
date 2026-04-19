@@ -1,185 +1,207 @@
+torchrun --standalone --nproc_per_node=1 training.py
+Device: cuda
+Ensuring base models are cached...
+  Caching LLM: Qwen/Qwen3-4B-Instruct-2507
+Fetching 13 files: 100%|████████████████████████████████████████████| 13/13 [00:00<00:00, 51978.98it/s]
+Download complete: : 0.00B [00:00, ?B/s]                Caching SigLIP: google/siglip2-so400m-patch16-256
+Fetching 9 files: 100%|████████████████████████████████████████████████| 9/9 [00:00<00:00, 5718.64it/s]
+Downloading (incomplete total...): 0.00B [00:00, ?B/s]All base models cached successfully.
+Download complete: : 0.00B [00:00, ?B/s]                                         | 0/9 [00:00<?, ?it/s]
+Download complete: : 0.00B [00:01, ?B/s]
+
+============================================================
+Training MultimodalACSAModel (all 6 aspects, encode-once, aspect-loop)
+============================================================
+Initializing model (downloading base models if needed)...
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights: 100%|█████████████████████████████████████████████| 398/398 [00:00<00:00, 9418.22it/s]
+Loading weights: 100%|█████████████████████████████████████████████| 888/888 [00:00<00:00, 8060.17it/s]
+Trainable params: {'total': 216724997, 'lora': 23592960, 'other': 193132037}
+
 Epoch 1/15
-Training: 100%|████████████████████████████████████| 360/360 [07:40<00:00,  1.28s/it, loss=1.0215]
-Train Loss: 1.0215
-Evaluating: 100%|███████████████████████████████████████████████| 125/125 [01:58<00:00,  1.06it/s]
-Dev Loss: 0.9281
-Dev F1 (macro): 0.3303  Precision: 0.3245  Recall: 0.3515  Accuracy: 0.6373
+Training: 100%|█████████████████████████████████████████| 360/360 [05:54<00:00,  1.02it/s, loss=1.1046]
+Train Loss: 1.1046
+Evaluating: 100%|████████████████████████████████████████████████████| 125/125 [01:16<00:00,  1.64it/s]
+Dev Loss: 0.8810
+Dev F1 (macro): 0.4021  Precision: 0.4778  Recall: 0.4004  Accuracy: 0.6602
 Per-aspect metrics (F1 / Precision / Recall / Acc):
-  Facilities: F1=0.3214  P=0.3201  R=0.3446  Acc=0.6240
-  Public_area: F1=0.3390  P=0.3379  R=0.3513  Acc=0.6900
-  Location: F1=0.3272  P=0.3169  R=0.3532  Acc=0.6150
-  Food: F1=0.3346  P=0.3360  R=0.3541  Acc=0.6510
-  Room: F1=0.3214  P=0.3248  R=0.3382  Acc=0.6450
-  Service: F1=0.3239  P=0.3050  R=0.3532  Acc=0.5990
-*** New best F1: 0.3303 (P=0.3245, R=0.3515) ***
+  Facilities: F1=0.2228  P=0.3385  R=0.2598  Acc=0.6870
+  Public_area: F1=0.3443  P=0.3138  R=0.4092  Acc=0.6230
+  Location: F1=0.2100  P=0.1810  R=0.2500  Acc=0.7240
+  Food: F1=0.2169  P=0.1915  R=0.2500  Acc=0.7660
+  Room: F1=0.3911  P=0.4655  R=0.3848  Acc=0.5600
+  Service: F1=0.2935  P=0.3250  R=0.2981  Acc=0.6010
+*** New best F1: 0.4021 (P=0.4778, R=0.4004) ***
 
 Epoch 2/15
-Training: 100%|████████████████████████████████████| 360/360 [07:35<00:00,  1.27s/it, loss=0.8314]
-Train Loss: 0.8314
-Evaluating: 100%|███████████████████████████████████████████████| 125/125 [02:07<00:00,  1.02s/it]
-Dev Loss: 0.7845
-Dev F1 (macro): 0.5009  Precision: 0.5428  Recall: 0.4957  Accuracy: 0.6872
+Training: 100%|█████████████████████████████████████████| 360/360 [05:47<00:00,  1.04it/s, loss=0.8841]
+Train Loss: 0.8841
+Evaluating: 100%|████████████████████████████████████████████████████| 125/125 [01:17<00:00,  1.62it/s]
+Dev Loss: 0.7655
+Dev F1 (macro): 0.4952  Precision: 0.6425  Recall: 0.4705  Accuracy: 0.6933
 Per-aspect metrics (F1 / Precision / Recall / Acc):
-  Facilities: F1=0.5058  P=0.5259  R=0.5083  Acc=0.6660
-  Public_area: F1=0.4825  P=0.5278  R=0.4885  Acc=0.7220
-  Location: F1=0.5189  P=0.5721  R=0.5080  Acc=0.6890
-  Food: F1=0.5042  P=0.5236  R=0.5121  Acc=0.6600
-  Room: F1=0.4819  P=0.5746  R=0.4729  Acc=0.7040
-  Service: F1=0.4863  P=0.5304  R=0.4808  Acc=0.6820
-*** New best F1: 0.5009 (P=0.5428, R=0.4957) ***
+  Facilities: F1=0.3821  P=0.3852  R=0.4122  Acc=0.7490
+  Public_area: F1=0.4777  P=0.5251  R=0.4733  Acc=0.7380
+  Location: F1=0.2952  P=0.3151  R=0.2968  Acc=0.7280
+  Food: F1=0.3106  P=0.3012  R=0.3840  Acc=0.6760
+  Room: F1=0.5530  P=0.6075  R=0.5458  Acc=0.6190
+  Service: F1=0.2898  P=0.4731  R=0.3013  Acc=0.6500
+*** New best F1: 0.4952 (P=0.6425, R=0.4705) ***
 
 Epoch 3/15
-Training: 100%|████████████████████████████████████| 360/360 [07:41<00:00,  1.28s/it, loss=0.6585]
-Train Loss: 0.6585
-Evaluating: 100%|███████████████████████████████████████████████| 125/125 [02:06<00:00,  1.02s/it]
-Dev Loss: 0.6381
-Dev F1 (macro): 0.5701  Precision: 0.6455  Recall: 0.5394  Accuracy: 0.7610
+Training: 100%|█████████████████████████████████████████| 360/360 [05:40<00:00,  1.06it/s, loss=0.7052]
+Train Loss: 0.7052
+Evaluating: 100%|████████████████████████████████████████████████████| 125/125 [01:20<00:00,  1.55it/s]
+Dev Loss: 0.6202
+Dev F1 (macro): 0.6120  Precision: 0.6076  Recall: 0.6253  Accuracy: 0.7618
 Per-aspect metrics (F1 / Precision / Recall / Acc):
-  Facilities: F1=0.5444  P=0.6390  R=0.5128  Acc=0.7360
-  Public_area: F1=0.5344  P=0.5966  R=0.5096  Acc=0.7850
-  Location: F1=0.6035  P=0.6690  R=0.5736  Acc=0.7640
-  Food: F1=0.5491  P=0.6093  R=0.5221  Acc=0.7430
-  Room: F1=0.5849  P=0.6936  R=0.5454  Acc=0.7920
-  Service: F1=0.5784  P=0.6451  R=0.5531  Acc=0.7460
-*** New best F1: 0.5701 (P=0.6455, R=0.5394) ***
+  Facilities: F1=0.4948  P=0.5869  R=0.4739  Acc=0.7790
+  Public_area: F1=0.5444  P=0.5868  R=0.5841  Acc=0.6790
+  Location: F1=0.3896  P=0.3822  R=0.3974  Acc=0.8180
+  Food: F1=0.3680  P=0.5343  R=0.3425  Acc=0.8070
+  Room: F1=0.5687  P=0.6053  R=0.6039  Acc=0.6570
+  Service: F1=0.5516  P=0.5259  R=0.6180  Acc=0.8310
+*** New best F1: 0.6120 (P=0.6076, R=0.6253) ***
 
 Epoch 4/15
-Training: 100%|████████████████████████████████████| 360/360 [07:37<00:00,  1.27s/it, loss=0.5393]
-Train Loss: 0.5393
-Evaluating: 100%|███████████████████████████████████████████████| 125/125 [02:04<00:00,  1.01it/s]
-Dev Loss: 0.5700
-Dev F1 (macro): 0.5962  Precision: 0.6421  Recall: 0.5870  Accuracy: 0.7867
+Training: 100%|█████████████████████████████████████████| 360/360 [05:42<00:00,  1.05it/s, loss=0.5620]
+Train Loss: 0.5620
+Evaluating: 100%|████████████████████████████████████████████████████| 125/125 [01:14<00:00,  1.67it/s]
+Dev Loss: 0.4998
+Dev F1 (macro): 0.5670  Precision: 0.7168  Recall: 0.5405  Accuracy: 0.8112
 Per-aspect metrics (F1 / Precision / Recall / Acc):
-  Facilities: F1=0.6051  P=0.6504  R=0.5913  Acc=0.7660
-  Public_area: F1=0.5620  P=0.6190  R=0.5444  Acc=0.8110
-  Location: F1=0.6063  P=0.6351  R=0.6059  Acc=0.7910
-  Food: F1=0.5693  P=0.5943  R=0.5721  Acc=0.7630
-  Room: F1=0.6113  P=0.6942  R=0.5869  Acc=0.8160
-  Service: F1=0.5900  P=0.6260  R=0.5938  Acc=0.7730
-*** New best F1: 0.5962 (P=0.6421, R=0.5870) ***
+  Facilities: F1=0.4208  P=0.5370  R=0.4209  Acc=0.7920
+  Public_area: F1=0.5196  P=0.7142  R=0.5139  Acc=0.7650
+  Location: F1=0.4095  P=0.4236  R=0.4039  Acc=0.8580
+  Food: F1=0.5180  P=0.7657  R=0.4967  Acc=0.8680
+  Room: F1=0.5680  P=0.6948  R=0.5318  Acc=0.7060
+  Service: F1=0.5134  P=0.5938  R=0.5029  Acc=0.8780
+No improvement. Patience: 1/4
 
 Epoch 5/15
-Training: 100%|████████████████████████████████████| 360/360 [07:35<00:00,  1.26s/it, loss=0.4464]
-Train Loss: 0.4464
-Evaluating: 100%|███████████████████████████████████████████████| 125/125 [02:03<00:00,  1.01it/s]
-Dev Loss: 0.5593
-Dev F1 (macro): 0.6128  Precision: 0.6742  Recall: 0.5870  Accuracy: 0.7943
+Training: 100%|█████████████████████████████████████████| 360/360 [05:46<00:00,  1.04it/s, loss=0.4677]
+Train Loss: 0.4677
+Evaluating: 100%|████████████████████████████████████████████████████| 125/125 [01:13<00:00,  1.70it/s]
+Dev Loss: 0.4853
+Dev F1 (macro): 0.6320  Precision: 0.6899  Recall: 0.6050  Accuracy: 0.8265
 Per-aspect metrics (F1 / Precision / Recall / Acc):
-  Facilities: F1=0.6092  P=0.6632  R=0.5828  Acc=0.7780
-  Public_area: F1=0.5907  P=0.6406  R=0.5680  Acc=0.8200
-  Location: F1=0.6305  P=0.7023  R=0.6028  Acc=0.7960
-  Food: F1=0.5977  P=0.6513  R=0.5771  Acc=0.7750
-  Room: F1=0.6069  P=0.6825  R=0.5778  Acc=0.8180
-  Service: F1=0.6220  P=0.6835  R=0.5996  Acc=0.7790
-*** New best F1: 0.6128 (P=0.6742, R=0.5870) ***
+  Facilities: F1=0.5367  P=0.6363  R=0.5085  Acc=0.8180
+  Public_area: F1=0.5922  P=0.7038  R=0.5724  Acc=0.7850
+  Location: F1=0.3964  P=0.4243  R=0.3866  Acc=0.8440
+  Food: F1=0.5284  P=0.6969  R=0.4998  Acc=0.8680
+  Room: F1=0.6473  P=0.6712  R=0.6382  Acc=0.7670
+  Service: F1=0.5786  P=0.5715  R=0.5911  Acc=0.8770
+*** New best F1: 0.6320 (P=0.6899, R=0.6050) ***
 
 Epoch 6/15
-Training: 100%|████████████████████████████████████| 360/360 [07:31<00:00,  1.25s/it, loss=0.3618]
-Train Loss: 0.3618
-Evaluating: 100%|███████████████████████████████████████████████| 125/125 [02:04<00:00,  1.01it/s]
-Dev Loss: 0.5869
-Dev F1 (macro): 0.6322  Precision: 0.6588  Recall: 0.6148  Accuracy: 0.7913
+Training: 100%|█████████████████████████████████████████| 360/360 [05:47<00:00,  1.04it/s, loss=0.4012]
+Train Loss: 0.4012
+Evaluating: 100%|████████████████████████████████████████████████████| 125/125 [01:15<00:00,  1.66it/s]
+Dev Loss: 0.4715
+Dev F1 (macro): 0.6489  Precision: 0.6812  Recall: 0.6332  Accuracy: 0.8322
 Per-aspect metrics (F1 / Precision / Recall / Acc):
-  Facilities: F1=0.6441  P=0.6724  R=0.6269  Acc=0.7750
-  Public_area: F1=0.5948  P=0.6140  R=0.5908  Acc=0.8140
-  Location: F1=0.6450  P=0.6756  R=0.6246  Acc=0.7930
-  Food: F1=0.6423  P=0.6708  R=0.6228  Acc=0.7790
-  Room: F1=0.6201  P=0.6462  R=0.6052  Acc=0.8050
-  Service: F1=0.6327  P=0.6609  R=0.6148  Acc=0.7820
-*** New best F1: 0.6322 (P=0.6588, R=0.6148) ***
+  Facilities: F1=0.5190  P=0.5729  R=0.5028  Acc=0.8030
+  Public_area: F1=0.5981  P=0.6187  R=0.5907  Acc=0.7770
+  Location: F1=0.4612  P=0.5147  R=0.4650  Acc=0.8730
+  Food: F1=0.6066  P=0.6619  R=0.5768  Acc=0.8820
+  Room: F1=0.6794  P=0.7063  R=0.6668  Acc=0.7790
+  Service: F1=0.5891  P=0.5806  R=0.6021  Acc=0.8790
+*** New best F1: 0.6489 (P=0.6812, R=0.6332) ***
 
 Epoch 7/15
-Training: 100%|████████████████████████████████████| 360/360 [07:32<00:00,  1.26s/it, loss=0.2793]
-Train Loss: 0.2793
-Evaluating: 100%|███████████████████████████████████████████████| 125/125 [02:04<00:00,  1.00it/s]
-Dev Loss: 0.6761
-Dev F1 (macro): 0.5840  Precision: 0.6991  Recall: 0.5534  Accuracy: 0.7945
+Training: 100%|█████████████████████████████████████████| 360/360 [05:44<00:00,  1.05it/s, loss=0.3211]
+Train Loss: 0.3211
+Evaluating: 100%|████████████████████████████████████████████████████| 125/125 [01:16<00:00,  1.63it/s]
+Dev Loss: 0.5000
+Dev F1 (macro): 0.6507  Precision: 0.6948  Recall: 0.6263  Accuracy: 0.8340
 Per-aspect metrics (F1 / Precision / Recall / Acc):
-  Facilities: F1=0.6055  P=0.7093  R=0.5713  Acc=0.7820
-  Public_area: F1=0.5563  P=0.6672  R=0.5368  Acc=0.8220
-  Location: F1=0.6008  P=0.7610  R=0.5610  Acc=0.7980
-  Food: F1=0.5992  P=0.6877  R=0.5689  Acc=0.7860
-  Room: F1=0.5797  P=0.7076  R=0.5513  Acc=0.8160
-  Service: F1=0.5504  P=0.6528  R=0.5298  Acc=0.7630
-No improvement. Patience: 1/4
+  Facilities: F1=0.5468  P=0.6130  R=0.5250  Acc=0.8120
+  Public_area: F1=0.5784  P=0.6275  R=0.5674  Acc=0.7730
+  Location: F1=0.4957  P=0.5902  R=0.4818  Acc=0.8830
+  Food: F1=0.5664  P=0.6134  R=0.5448  Acc=0.8730
+  Room: F1=0.6922  P=0.7121  R=0.6778  Acc=0.7820
+  Service: F1=0.5913  P=0.5887  R=0.5943  Acc=0.8810
+*** New best F1: 0.6507 (P=0.6948, R=0.6263) ***
 
 Epoch 8/15
-Training: 100%|████████████████████████████████████| 360/360 [07:39<00:00,  1.28s/it, loss=0.2094]
-Train Loss: 0.2094
-Evaluating: 100%|███████████████████████████████████████████████| 125/125 [01:57<00:00,  1.06it/s]
-Dev Loss: 0.6417
-Dev F1 (macro): 0.6463  Precision: 0.6626  Recall: 0.6332  Accuracy: 0.7992
+Training: 100%|█████████████████████████████████████████| 360/360 [05:44<00:00,  1.05it/s, loss=0.2516]
+Train Loss: 0.2516
+Evaluating: 100%|████████████████████████████████████████████████████| 125/125 [01:16<00:00,  1.63it/s]
+Dev Loss: 0.6063
+Dev F1 (macro): 0.6488  Precision: 0.6739  Recall: 0.6345  Accuracy: 0.8095
 Per-aspect metrics (F1 / Precision / Recall / Acc):
-  Facilities: F1=0.6787  P=0.6918  R=0.6701  Acc=0.7930
-  Public_area: F1=0.6253  P=0.6336  R=0.6193  Acc=0.8390
-  Location: F1=0.6731  P=0.6944  R=0.6572  Acc=0.8040
-  Food: F1=0.6069  P=0.6123  R=0.6034  Acc=0.7650
-  Room: F1=0.6462  P=0.6690  R=0.6293  Acc=0.8140
-  Service: F1=0.6367  P=0.6660  R=0.6203  Acc=0.7800
-*** New best F1: 0.6463 (P=0.6626, R=0.6332) ***
-
-Epoch 9/15
-Training: 100%|████████████████████████████████████| 360/360 [07:37<00:00,  1.27s/it, loss=0.1453]
-Train Loss: 0.1453
-Evaluating: 100%|███████████████████████████████████████████████| 125/125 [02:01<00:00,  1.03it/s]
-Dev Loss: 0.7540
-Dev F1 (macro): 0.6265  Precision: 0.6606  Recall: 0.6061  Accuracy: 0.7997
-Per-aspect metrics (F1 / Precision / Recall / Acc):
-  Facilities: F1=0.6377  P=0.6840  R=0.6130  Acc=0.7850
-  Public_area: F1=0.5839  P=0.6019  R=0.5792  Acc=0.8200
-  Location: F1=0.6419  P=0.6740  R=0.6209  Acc=0.8010
-  Food: F1=0.6170  P=0.6591  R=0.5922  Acc=0.7890
-  Room: F1=0.6375  P=0.6764  R=0.6142  Acc=0.8220
-  Service: F1=0.6263  P=0.6648  R=0.6050  Acc=0.7810
+  Facilities: F1=0.5170  P=0.5680  R=0.5134  Acc=0.7680
+  Public_area: F1=0.5914  P=0.6280  R=0.5994  Acc=0.7370
+  Location: F1=0.5072  P=0.5312  R=0.5083  Acc=0.8420
+  Food: F1=0.5604  P=0.6166  R=0.5445  Acc=0.8770
+  Room: F1=0.6325  P=0.6951  R=0.6080  Acc=0.7410
+  Service: F1=0.5900  P=0.6285  R=0.5725  Acc=0.8920
 No improvement. Patience: 1/4
 
-Epoch 10/15
-Training: 100%|████████████████████████████████████| 360/360 [07:29<00:00,  1.25s/it, loss=0.0995]
-Train Loss: 0.0995
-Evaluating: 100%|███████████████████████████████████████████████| 125/125 [02:07<00:00,  1.02s/it]
-Dev Loss: 0.8099
-Dev F1 (macro): 0.6183  Precision: 0.6505  Recall: 0.5996  Accuracy: 0.7870
+Epoch 9/15
+Training: 100%|█████████████████████████████████████████| 360/360 [05:54<00:00,  1.02it/s, loss=0.1839]
+Train Loss: 0.1839
+Evaluating: 100%|████████████████████████████████████████████████████| 125/125 [01:20<00:00,  1.56it/s]
+Dev Loss: 0.6539
+Dev F1 (macro): 0.6474  Precision: 0.6899  Recall: 0.6225  Accuracy: 0.8298
 Per-aspect metrics (F1 / Precision / Recall / Acc):
-  Facilities: F1=0.6485  P=0.6898  R=0.6239  Acc=0.7830
-  Public_area: F1=0.5869  P=0.6098  R=0.5766  Acc=0.8170
-  Location: F1=0.6286  P=0.6800  R=0.6028  Acc=0.7890
-  Food: F1=0.5929  P=0.6135  R=0.5822  Acc=0.7570
-  Room: F1=0.6374  P=0.6632  R=0.6202  Acc=0.8180
-  Service: F1=0.6044  P=0.6426  R=0.5866  Acc=0.7580
+  Facilities: F1=0.5076  P=0.6358  R=0.4810  Acc=0.8070
+  Public_area: F1=0.5820  P=0.6052  R=0.5760  Acc=0.7510
+  Location: F1=0.4612  P=0.5405  R=0.4610  Acc=0.8720
+  Food: F1=0.5281  P=0.6082  R=0.5192  Acc=0.8750
+  Room: F1=0.6884  P=0.7005  R=0.6853  Acc=0.7840
+  Service: F1=0.5809  P=0.6069  R=0.5689  Acc=0.8900
 No improvement. Patience: 2/4
 
-Epoch 11/15
-Training: 100%|████████████████████████████████████| 360/360 [07:30<00:00,  1.25s/it, loss=0.0632]
-Train Loss: 0.0632
-Evaluating: 100%|███████████████████████████████████████████████| 125/125 [02:01<00:00,  1.02it/s]
-Dev Loss: 0.8537
-Dev F1 (macro): 0.6438  Precision: 0.6571  Recall: 0.6331  Accuracy: 0.7997
+Epoch 10/15
+Training: 100%|█████████████████████████████████████████| 360/360 [05:55<00:00,  1.01it/s, loss=0.1395]
+Train Loss: 0.1395
+Evaluating: 100%|████████████████████████████████████████████████████| 125/125 [01:15<00:00,  1.67it/s]
+Dev Loss: 0.7018
+Dev F1 (macro): 0.6484  Precision: 0.6852  Recall: 0.6289  Accuracy: 0.8255
 Per-aspect metrics (F1 / Precision / Recall / Acc):
-  Facilities: F1=0.6669  P=0.6764  R=0.6627  Acc=0.7900
-  Public_area: F1=0.6250  P=0.6316  R=0.6223  Acc=0.8290
-  Location: F1=0.6441  P=0.6647  R=0.6288  Acc=0.7980
-  Food: F1=0.6184  P=0.6274  R=0.6122  Acc=0.7780
-  Room: F1=0.6601  P=0.6772  R=0.6465  Acc=0.8270
-  Service: F1=0.6360  P=0.6553  R=0.6222  Acc=0.7760
+  Facilities: F1=0.5419  P=0.5790  R=0.5241  Acc=0.8030
+  Public_area: F1=0.5911  P=0.6254  R=0.5900  Acc=0.7530
+  Location: F1=0.5530  P=0.6631  R=0.5221  Acc=0.8840
+  Food: F1=0.5582  P=0.6077  R=0.5385  Acc=0.8730
+  Room: F1=0.6751  P=0.7046  R=0.6579  Acc=0.7650
+  Service: F1=0.5816  P=0.6396  R=0.5593  Acc=0.8750
 No improvement. Patience: 3/4
 
-Epoch 12/15
-Training: 100%|████████████████████████████████████| 360/360 [07:40<00:00,  1.28s/it, loss=0.0377]
-Train Loss: 0.0377
-Evaluating: 100%|███████████████████████████████████████████████| 125/125 [02:05<00:00,  1.00s/it]
-Dev Loss: 0.9455
-Dev F1 (macro): 0.6414  Precision: 0.6648  Recall: 0.6243  Accuracy: 0.7998
+Epoch 11/15
+Training: 100%|█████████████████████████████████████████| 360/360 [05:50<00:00,  1.03it/s, loss=0.1052]
+Train Loss: 0.1052
+Evaluating: 100%|████████████████████████████████████████████████████| 125/125 [01:17<00:00,  1.61it/s]
+Dev Loss: 0.7702
+Dev F1 (macro): 0.6491  Precision: 0.6913  Recall: 0.6245  Accuracy: 0.8277
 Per-aspect metrics (F1 / Precision / Recall / Acc):
-  Facilities: F1=0.6585  P=0.6865  R=0.6400  Acc=0.7900
-  Public_area: F1=0.6284  P=0.6498  R=0.6129  Acc=0.8350
-  Location: F1=0.6498  P=0.6765  R=0.6311  Acc=0.7970
-  Food: F1=0.5978  P=0.6169  R=0.5854  Acc=0.7700
-  Room: F1=0.6500  P=0.6792  R=0.6293  Acc=0.8240
-  Service: F1=0.6447  P=0.6651  R=0.6300  Acc=0.7830
+  Facilities: F1=0.5430  P=0.6037  R=0.5190  Acc=0.8050
+  Public_area: F1=0.5870  P=0.6587  R=0.5705  Acc=0.7600
+  Location: F1=0.5199  P=0.6101  R=0.4901  Acc=0.8770
+  Food: F1=0.5294  P=0.6240  R=0.5051  Acc=0.8660
+  Room: F1=0.6816  P=0.6930  R=0.6742  Acc=0.7710
+  Service: F1=0.5956  P=0.6178  R=0.5802  Acc=0.8870
 No improvement. Patience: 4/4
-Early stopping at epoch 12
+Early stopping at epoch 11
 
-Best overall F1: 0.6463
+Best overall F1: 0.6507
+Per-epoch results saved to outputs/train_result.json
+Best dev results saved to outputs/dev_result.json
 
-Training complete. Results saved to outputs/training_results.json
-Best F1 (macro): 0.6463
+============================================================
+Loading best model for test evaluation...
+============================================================
+Loading weights: 100%|█████████████████████████████████████████████| 398/398 [00:00<00:00, 9599.27it/s]
+Loading weights: 100%|█████████████████████████████████████████████| 888/888 [00:00<00:00, 9076.35it/s]
+Loaded best checkpoint from outputs/best_checkpoint.pt
+Test Evaluation: 100%|███████████████████████████████████████████████| 125/125 [01:14<00:00,  1.68it/s]
+
+Test Loss: 0.5106
+Test F1 (macro): 0.6538  Precision: 0.6893  Recall: 0.6316  Accuracy: 0.8262
+Per-aspect metrics (F1 / Precision / Recall / Acc):
+  Facilities: F1=0.5457  P=0.5644  R=0.5309  Acc=0.8040
+  Public_area: F1=0.5456  P=0.5880  R=0.5421  Acc=0.7700
+  Location: F1=0.4426  P=0.4729  R=0.4419  Acc=0.8750
+  Food: F1=0.5911  P=0.6327  R=0.5634  Acc=0.8590
+  Room: F1=0.7114  P=0.7205  R=0.7041  Acc=0.7830
+  Service: F1=0.5933  P=0.5998  R=0.5919  Acc=0.8660
