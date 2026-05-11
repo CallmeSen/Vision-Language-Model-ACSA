@@ -2,7 +2,6 @@
 
 # Overview
 
-- Introduce a new Vietnamese multimodal dataset for aspect-based sentiment analysis in the hotel domain, comprising 4,876 text-image pairs with 14,618 fine-grained annotations across 6 aspects.
 - Propose a **Vision-Language Model ACSA** architecture that processes text and images jointly with explicit cross-modal retrieval and gated fusion for each aspect independently.
 
 # Table of Contents
@@ -15,7 +14,7 @@
 # Dataset
 To understand more about the dataset, please read this paper: [New Benchmark Dataset and Fine-Grained Cross-Modal Fusion Framework for Vietnamese Multimodal Aspect-Category Sentiment Analysis](https://arxiv.org/abs/2405.00543)
 
-Our dataset is used only for research purposes. Download the ViMACSA dataset on reasonable request: https://drive.google.com/file/d/1OjWwzdbhvhYc864Tpt6Xw9anBLfgNwmt/view?usp=sharing
+This dataset is used only for research purposes. Download the ViMACSA dataset on reasonable request: https://drive.google.com/file/d/1OjWwzdbhvhYc864Tpt6Xw9anBLfgNwmt/view?usp=sharing
 
 > **Note**: This repository builds upon the original [ViMACSA dataset](https://github.com/hoangquy18/Multimodal-Aspect-Category-Sentiment-Analysis) by Hoang Quy et al. (2025).
 **6 Aspects**: Facilities, Public_area, Location, Food, Room, Service
@@ -33,7 +32,7 @@ Our dataset is used only for research purposes. Download the ViMACSA dataset on 
 
 # Architecture
 
-We propose the **ViMACSA (Vision Multimodal Aspect-Category Sentiment Analysis)** architecture with two core design principles:
+We propose the **VLM-ACSA (Vision Language Model Aspect-Category Sentiment Analysis)** architecture with two core design principles:
 
 1. **Encode once**: comment, all images, and all ROIs are encoded only once per forward pass
 2. **Aspect loop**: shared retrieval/fusion/decoder modules process each aspect independently
@@ -104,7 +103,7 @@ CrossEntropyLoss on logits [B*6, 4] vs targets [B*6]
 pip install -r requirements.txt
 ```
 
-## Training ViMACSA
+## Training VLM-ACSA
 
 ```
 torchrun --standalone --nproc_per_node=1 training.py
